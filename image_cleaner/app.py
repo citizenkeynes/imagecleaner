@@ -8,7 +8,7 @@ from io import BytesIO
 import threading
 from image_cleaner.filesystems import LocalFileSystem, GoogleDriveFileSystem
 
-app = Flask(__name__)
+app = Flask(__name__,template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 
 BATCH_SIZE = 100
 global all_images
