@@ -7,7 +7,7 @@ from PIL import Image
 from io import BytesIO
 import threading
 from image_cleaner.filesystems import LocalFileSystem, GoogleDriveFileSystem
-
+from cachetools import TTLCache
 tfolder = os.path.join(os.path.dirname(__file__), 'templates')
 
 app = Flask(__name__,template_folder=tfolder)
@@ -18,7 +18,7 @@ global deleted_images
 global cached_images
 deleted_images=[]
 all_images=[]
-cached_images={}
+cached_images=TTLCache(maxsize=1000, ttl=60*5)
 
 fs  = GoogleDriveFileSystem()#LocalFileSystem('/Users/csommeregger/Library/CloudStorage/GoogleDrive-christian.sommeregger@gmail.com/My Drive/lola/scrapes/')
 
@@ -65,6 +65,11 @@ def get_image_batch(batch_number,function="regular call"):
     print(f"return {len(encoded_batch)} images and {len(rel_images)} paths images: {function}")
     return encoded_batch,rel_images
 
+def preload(batch_number,steps=3):
+    for i in range(steps):
+        thread  = threading.Thread(target=get_image_batch, args=(batch_number + i,"cache"))
+        thread.start()
+
 @app.route('/')
 def index():
     global all_images
@@ -72,16 +77,14 @@ def index():
         init_images()
     batch_number = int(request.args.get('batch', 0))
     image_batch,paths = get_image_batch(batch_number)
+    preload(batch_number)
     return render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
 
 @app.route('/next')
 def next_batch():
     batch_number = int(request.args.get('batch', 0)) + 1
     image_batch,paths = get_image_batch(batch_number)
-    thread  = threading.Thread(target=get_image_batch, args=(batch_number + 1,"cache"))
-    thread.start()
-    thread = threading.Thread(target=get_image_batch, args=(batch_number + 2, "cache"))
-    thread.start()
+    preload(batch_number)
     return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
 
 @app.route('/prev')
