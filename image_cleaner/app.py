@@ -8,7 +8,9 @@ from io import BytesIO
 import threading
 from image_cleaner.filesystems import LocalFileSystem, GoogleDriveFileSystem
 
-app = Flask(__name__,template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
+tfolder = os.path.join(os.path.dirname(__file__), 'templates')
+
+app = Flask(__name__,template_folder=tfolder)
 
 BATCH_SIZE = 100
 global all_images
@@ -42,6 +44,7 @@ def encode_batch(image_paths_list):
     return encoded_images
 
 def init_images():
+    print(tfolder)
     global all_images
     print("init images")
     for root, _, files in fs.walk():
