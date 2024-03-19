@@ -1,0 +1,53 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Viewer</title>
+    <style>
+        img {
+            max-width: 120px; /* Half of the original max-width */
+            max-height: 120px; /* Half of the original max-height */
+        }
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Adjust the gap between images as needed */
+        }
+        .image-container > div {
+            flex: 1 1 75px; /* Adjust the width of each image container as needed */
+            max-width: 75px; /* Adjust the maximum width of each image container */
+            text-align: center; /* Center-align the text */
+        }
+        .image-container > div p {
+            margin: 0; /* Remove default margin */
+            font-size: 12px; /* Adjust font size as needed */
+            word-wrap: break-word; /* Break long words */
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Viewer</h1>
+        <div>
+        {% if batch > 0 %}
+            <a href="/prev?batch={{ batch }}">Previous</a>
+        {% endif %}
+        <a href="/next?batch={{ batch }}">Next</a>
+    </div>
+    <div class="image-container">
+        {% for image, path in images_with_paths %}
+            <div>
+                <img src="data:image/jpeg;base64,{{ image }}" alt="{{ path }}" ondblclick="deleteImage('{{ path }}')" onclick="deleteImage('{{ path }}')">
+                <p>{{ path }}</p>
+                <form id="deleteForm_{{ path }}" action="/delete" method="post">
+                    <input type="hidden" name="path" value="{{ path }}">
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function deleteImage(path) {
+            var formId = "deleteForm_" + path;
+            document.getElementById(formId).submit();
+        }
+    </script>
+</body>
