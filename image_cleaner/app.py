@@ -6,10 +6,10 @@ import concurrent.futures
 from PIL import Image
 from io import BytesIO
 import threading
+from filesystems import LocalFileSystem, GoogleDriveFileSystem
 
 app = Flask(__name__)
 
-IMAGE_DIR = '/Users/csommeregger/Library/CloudStorage/GoogleDrive-christian.sommeregger@gmail.com/My Drive/lola/scrapes/'
 BATCH_SIZE = 100
 global all_images
 global deleted_images
@@ -18,11 +18,13 @@ deleted_images=[]
 all_images=[]
 cached_images={}
 
+fs  = GoogleDriveFileSystem()#LocalFileSystem('/Users/csommeregger/Library/CloudStorage/GoogleDrive-christian.sommeregger@gmail.com/My Drive/lola/scrapes/')
+
 def encode_image(image_path):
     global cached_images
     if cached_images.get(image_path) is not None:
         return cached_images[image_path]
-    with open(os.path.join(IMAGE_DIR, image_path), "rb") as f:
+    with fs.open(image_path, "rb") as f:
         image = Image.open(f)
         image = image.resize((300, 300))
         with BytesIO() as buffer:
@@ -41,12 +43,12 @@ def encode_batch(image_paths_list):
 
 def init_images():
     global all_images
-    for root, _, files in os.walk(IMAGE_DIR):
-        print(root)
+    print("init images")
+    for root, _, files in fs.walk():
         for file in files:
             if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                all_images.append(os.path.relpath(os.path.join(root, file), IMAGE_DIR))
-    print(len(all_images))
+                all_images.append(fs.relpath(root,file))
+    print(f"found {len(all_images)} images in total")
 
 def get_image_batch(batch_number,function="regular call"):
     global all_images
@@ -62,7 +64,9 @@ def get_image_batch(batch_number,function="regular call"):
 
 @app.route('/')
 def index():
-    init_images()
+    global all_images
+    if len(all_images) == 0:
+        init_images()
     batch_number = int(request.args.get('batch', 0))
     image_batch,paths = get_image_batch(batch_number)
     return render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
@@ -72,6 +76,8 @@ def next_batch():
     batch_number = int(request.args.get('batch', 0)) + 1
     image_batch,paths = get_image_batch(batch_number)
     thread  = threading.Thread(target=get_image_batch, args=(batch_number + 1,"cache"))
+    thread.start()
+    thread = threading.Thread(target=get_image_batch, args=(batch_number + 2, "cache"))
     thread.start()
     return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
 
@@ -88,15 +94,7 @@ def delete_image():
     if request.method == 'POST':
         path_to_delete = request.form['path']
         deleted_images.append(path_to_delete)
-        os.remove(os.path.join(IMAGE_DIR, path_to_delete))
-    return redirect(request.referrer)
-
-@app.route('/clean', methods=['GET'])
-def clean():
-    global deleted_images
-    for image in deleted_images:
-        os.remove(os.path.join(IMAGE_DIR, image))
-        print(f"deleted {image}")
+        fs.remove(path_to_delete)
     return redirect(request.referrer)
 
 if __name__ == '__main__':
