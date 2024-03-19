@@ -7,7 +7,7 @@ import threading
 class GoogleDriveFileSystem:
     def __init__(self, dir="root/lola/scrapes"):
         self.directory = dir
-        self.max_par = 30
+        self.max_par = 50
         self.fs = GDriveFileSystem(
             "root",
             client_id="520373805335-jctrsil46g6gre7kkhll9onvv9a4erjb.apps.googleusercontent.com",
@@ -18,7 +18,6 @@ class GoogleDriveFileSystem:
         def walk_folder(folder):
             print("walk+" + folder)
             return [(a,b,c) for a,b,c in self.fs.walk(folder)]
-
         results = []
         with ThreadPoolExecutor(max_workers=self.max_par) as executor:
             futures = [executor.submit(walk_folder, folder) for folder in root_subfolders]
