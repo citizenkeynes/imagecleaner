@@ -6,7 +6,7 @@ import concurrent.futures
 from PIL import Image
 from io import BytesIO
 import threading
-from filesystems import LocalFileSystem, GoogleDriveFileSystem
+from image_cleaner.filesystems import LocalFileSystem, GoogleDriveFileSystem
 
 app = Flask(__name__)
 

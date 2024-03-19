@@ -9,9 +9,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'flask',
-        'pydrive2[fsspec]'
-        'numpy',
-        'logging',
+        'pydrive2',
+        "pydrive2[fsspec]"
     ],
     include_package_data = True,
     package_data={

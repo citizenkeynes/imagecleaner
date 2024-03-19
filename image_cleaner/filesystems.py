@@ -1,6 +1,5 @@
 from pydrive2.fs import GDriveFileSystem
 import os
-import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
@@ -8,7 +7,7 @@ import threading
 class GoogleDriveFileSystem:
     def __init__(self, dir="root/lola/scrapes"):
         self.directory = dir
-        self.max_par = 20
+        self.max_par = 30
         self.fs = GDriveFileSystem(
             "root",
             client_id="520373805335-jctrsil46g6gre7kkhll9onvv9a4erjb.apps.googleusercontent.com",
