@@ -26,7 +26,7 @@
 </head>
 <body>
     <h1>Image Viewer</h1>
-        <div>
+    <div>
         {% if batch > 0 %}
             <a href="/prev?batch={{ batch }}">Previous</a>
         {% endif %}
@@ -35,19 +35,29 @@
     <div class="image-container">
         {% for image, path in images_with_paths %}
             <div>
-                <img src="data:image/jpeg;base64,{{ image }}" alt="{{ path }}" ondblclick="deleteImage('{{ path }}')" onclick="deleteImage('{{ path }}')">
+                <img src="data:image/jpeg;base64,{{ image }}" alt="{{ path }}" onclick="deleteImage('{{ path }}')">
                 <p>{{ path }}</p>
-                <form id="deleteForm_{{ path }}" action="/delete" method="post">
-                    <input type="hidden" name="path" value="{{ path }}">
-                </form>
             </div>
         {% endfor %}
     </div>
 
     <script>
         function deleteImage(path) {
-            var formId = "deleteForm_" + path;
-            document.getElementById(formId).submit();
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/delete", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === XMLHttpRequest.DONE) {
+                        if (xhr.status === 200) {
+                            // Optionally, you can remove the image from the UI
+                            var element = document.querySelector("img[alt='" + path + "']").parentNode;
+                            element.parentNode.removeChild(element);
+                        } else {
+                            alert("Failed to delete image.");
+                        }
+                    }
+                };
+                xhr.send("path=" + encodeURIComponent(path));
         }
     </script>
 </body>
