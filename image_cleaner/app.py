@@ -16,6 +16,9 @@ BATCH_SIZE = 100
 global all_images
 global deleted_images
 global cached_images
+global filter_str
+global batch_number
+filter_str = ""
 deleted_images=[]
 all_images=[]
 cached_images=TTLCache(maxsize=1000, ttl=60*5)
@@ -53,14 +56,16 @@ def init_images():
                 all_images.append(fs.relpath(root,file))
     print(f"found {len(all_images)} images in total")
 
-def get_image_batch(batch_number,function="regular call"):
+def get_image_batch(batch_number,filter_str,function="regular call"):
     global all_images
     start_idx = batch_number * BATCH_SIZE
     end_idx = start_idx + BATCH_SIZE
-
     if end_idx>len(all_images):
         end_idx = len(all_images)
-    rel_images = [img for img in all_images[start_idx:end_idx] if img not in deleted_images]
+    print(filter_str)
+    print(len(all_images))
+    print(len([img for img in all_images if filter_str in img]))
+    rel_images = [img for img in [img for img in all_images if filter_str in img][start_idx:end_idx] if img not in deleted_images]
     encoded_batch = encode_batch(rel_images)
     print(f"return {len(encoded_batch)} images and {len(rel_images)} paths images: {function}")
     return encoded_batch,rel_images
@@ -70,28 +75,42 @@ def preload(batch_number,steps=3):
         thread  = threading.Thread(target=get_image_batch, args=(batch_number + i,"cache"))
         thread.start()
 
+@app.route('/filter')
+def filter():
+    global filter_str
+    global batch_number
+    batch_number=0
+    filter_str = request.args.get('filterstr', "")
+    image_batch,paths = get_image_batch(batch_number,filter_str)
+    return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number, filter_str=filter_str)
+
 @app.route('/')
 def index():
     global all_images
+    global batch_number
+    global filter_str
     if len(all_images) == 0:
         init_images()
     batch_number = int(request.args.get('batch', 0))
-    image_batch,paths = get_image_batch(batch_number)
+    image_batch,paths = get_image_batch(batch_number,filter_str)
     preload(batch_number)
-    return render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
+    return render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number, filter_str=filter_str)
 
 @app.route('/next')
 def next_batch():
+    global batch_number
+    global filter_str
     batch_number = int(request.args.get('batch', 0)) + 1
-    image_batch,paths = get_image_batch(batch_number)
+    image_batch,paths = get_image_batch(batch_number,filter_str)
     preload(batch_number)
-    return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
+    return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number, filter_str=filter_str)
 
 @app.route('/prev')
 def prev_batch():
+    global batch_number
     batch_number = int(request.args.get('batch', 0)) - 1
     image_batch,paths = get_image_batch(batch_number)
-    return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number)
+    return  render_template('index.html', images_with_paths=zip(image_batch,paths), batch=batch_number, filter_str=filter_str)
 
 @app.route('/delete', methods=['POST'])
 def delete_image():
